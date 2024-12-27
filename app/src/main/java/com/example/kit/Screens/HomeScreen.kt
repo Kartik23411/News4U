@@ -1,5 +1,6 @@
 package com.example.kit.Screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -9,6 +10,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -37,6 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
@@ -80,7 +82,6 @@ import com.example.kit.ui.theme.dongle_font
 import com.example.kit.ui.theme.lobster_two_font
 import com.example.kit.viewmodal.HomeViewModal
 import kotlinx.coroutines.launch
-import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -95,10 +96,10 @@ fun HomeScreen(viewModal: HomeViewModal = viewModel()){
 
     val context = LocalContext.current
 
-    val q = remember { mutableStateOf("any") }
-    val language = remember { mutableStateOf("any") }
-    val country = remember { mutableStateOf("any") }
-    val sortBy = remember { mutableStateOf("any") }
+    val q = remember { mutableStateOf("General") }
+    val language = remember { mutableStateOf("eng") }
+    val country = remember { mutableStateOf("in") }
+    val sortBy = remember { mutableStateOf("relevance") }
     val noOfNews by remember { mutableIntStateOf(100) }
 
     LaunchedEffect(Unit) {
@@ -109,6 +110,7 @@ fun HomeScreen(viewModal: HomeViewModal = viewModel()){
     val scope = rememberCoroutineScope()
     val modalSheetState = rememberModalBottomSheetState()
     var selectedArticle by remember{ mutableStateOf<Article?>(null) }
+    val bgColor = if (isSystemInDarkTheme()) Color.Black else Color(0xFFE6E2DA)
 
         if (isLoading) {
             Column(
@@ -117,23 +119,23 @@ fun HomeScreen(viewModal: HomeViewModal = viewModel()){
                 modifier = Modifier.fillMaxSize()
             ) {
                 CircularProgressIndicator(
-                    color = Color(0xFF4A8AB2),
+                    color = MaterialTheme.colorScheme.primary,
                     strokeCap = ProgressIndicatorDefaults.CircularDeterminateStrokeCap,
                     strokeWidth = ProgressIndicatorDefaults.CircularStrokeWidth
                 )
-                Text("Hold on, getting data", fontSize = 12.sp, color = Color(0xFF4A8AB2))
+                Text("Hold on, getting data", fontSize = 12.sp, color = Color(0xFFE6E2DA))
             }
         } else {
             Scaffold(
                 floatingActionButton = { FloatingActionButton(
                     modifier = Modifier.padding(bottom = 32.dp, end = 16.dp),
-                    containerColor = Color(0xFFF4F7FD),
+                    containerColor = MaterialTheme.colorScheme.background,
                     onClick = {viewModal.fetchNews(q.value,language.value,country.value,sortBy.value,noOfNews)},
                     content = { Icon(imageVector = Icons.Default.Refresh, contentDescription = "image") }
                 ) },
                 floatingActionButtonPosition = FabPosition.EndOverlay,
                 topBar = { TopBarWithDropdowns(q, country, language, sortBy) },
-                containerColor = Color(0xFFF4F7FD),
+                containerColor = bgColor,
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
@@ -165,7 +167,7 @@ fun HomeScreen(viewModal: HomeViewModal = viewModel()){
                             isFocusable = true
                         ),
                         tonalElevation = 5.dp,
-                        containerColor = Color(0xFFFFFFFF),
+                        containerColor = bgColor,
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         MoreBottomSheet(selectedArticle!!, context)
@@ -183,12 +185,14 @@ fun NewsCard(
     article: Article,
     onClick:() -> Unit
 ){
+    val contentColor = if(isSystemInDarkTheme()) Color.White else Color.Black
+    val cardColor = if (isSystemInDarkTheme()) Color(0xFF1B2124) else Color(0xFFFDFDFD)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(Color(0xFFFFFFFF)),
+        colors = CardDefaults.cardColors(cardColor),
         shape = RoundedCornerShape(15.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -199,7 +203,7 @@ fun NewsCard(
             Text(
                 article.title,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = contentColor,
                 fontSize = 16.sp,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1
@@ -208,7 +212,7 @@ fun NewsCard(
             Text(
                 article.description,
                 fontWeight = FontWeight.Thin,
-                color = Color(0xF6818881),
+                color = contentColor.copy(alpha = .6f),
                 fontSize = 12.sp,
                 lineHeight = 15.sp,
                 overflow = TextOverflow.Ellipsis,
@@ -216,15 +220,16 @@ fun NewsCard(
             )
         }
         Row(
-            modifier = Modifier.height(15.dp).fillMaxWidth().background(Color(0xB5DEE3E3)),
+            modifier = Modifier.height(16.dp).fillMaxWidth().background(MaterialTheme.colorScheme
+                    .background.copy(alpha = .2f)),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.Top
         ) {
             Text(
                 text = formatDateTime(article.publishedAt)[0],
                 fontSize = 8.sp,
-                modifier = Modifier.padding(end = 16.dp),
-                color = Color(0xF6ACB2AC),
+                modifier = Modifier.padding(end = 16.dp, bottom = 1.dp),
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Black
             )
         }
@@ -237,10 +242,13 @@ fun MoreBottomSheet(
     article: Article,
     context:Context
 ) {
+    val bgColor = if (isSystemInDarkTheme()) Color.Black else Color(0xFFE6E2DA)
+    val contentColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val cardColor = if (isSystemInDarkTheme()) Color(0xFF1B2124) else Color(0xFFFDFDFD)
     Column (
         modifier = Modifier
             .padding(start = 8.dp, end = 8.dp, top = 12.dp)
-            .background(Color(0xFFFFFFFF)),
+            .background(bgColor),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
         ){
@@ -250,7 +258,7 @@ fun MoreBottomSheet(
             append(str)
             addStyle(
                 style = SpanStyle(
-                    color = Color(0xff64B5F6),
+                    color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
                 ), start = 0, end = endIndex
             )
@@ -267,7 +275,7 @@ fun MoreBottomSheet(
             append(str)
             addStyle(
                 style = SpanStyle(
-                    color = Color(0xff64B5F6),
+                    color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
                 ), start = 0, end = endIndex
             )
@@ -287,7 +295,8 @@ fun MoreBottomSheet(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)){
                 Text(
                     text = "Source: ",
-                    fontSize = 12.sp
+                    fontSize = 13.sp,
+                    color = contentColor
                 )
                 ClickableText(
                     overflow = TextOverflow.Ellipsis,
@@ -310,15 +319,17 @@ fun MoreBottomSheet(
             Text(
                 "On: ${dateTimeArray[0]}, ${dateTimeArray[1]}",
 //                modifier = Modifier.weight(1f),
-                fontSize = 12.sp
+                fontSize = 13.sp,
+                color = contentColor
                 )
         }
         Text(
             text = article.title,
-            fontSize = 18.sp,
-            lineHeight = 16.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 2,
+            color = contentColor,
+            fontSize = 22.sp,
+            lineHeight = 25.sp,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             softWrap = true,
             modifier = Modifier.padding(bottom = 4.dp)
@@ -327,7 +338,7 @@ fun MoreBottomSheet(
             modifier = Modifier
                 .height(225.dp)
                 .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 8.dp),
+                .padding(top = 8.dp, bottom = 8.dp, start = 4.dp, end = 4.dp),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(Color(0xFFF4F7FD)),
             elevation = CardDefaults.cardElevation(2.dp)
@@ -343,33 +354,34 @@ fun MoreBottomSheet(
             )
         }
         Card(
-            colors = CardDefaults.cardColors(Color(0xFFEFE8E8)),
+            colors = CardDefaults.cardColors(cardColor),
+            modifier = Modifier.padding(start = 2.dp, end = 2.dp, top = 4.dp),
             shape = RoundedCornerShape(topEnd = 15.dp, topStart = 15.dp)
         ){
                 Text(
                     text = "Description:",
-                    fontSize = 15.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     softWrap = true,
-                    color = Color(0xFF000000),
-                    modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)
+                    color = contentColor.copy(alpha = .95f),
+                    modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 4.dp)
                 )
                 Text(
                     text = article.description,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
                     softWrap = true,
-                    color = Color(0xFF000000),
+                    color = contentColor.copy(alpha = .6f),
                     lineHeight = 17.sp,
-                    modifier = Modifier.padding( start = 4.dp, end = 4.dp)
+                    modifier = Modifier.padding( start = 12.dp, top = 4.dp, end = 6.dp)
                 )
             Text(
                 text = "Article:",
-                fontSize = 15.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 softWrap = true,
-                color = Color(0xFF000000),
-                modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)
+                color = contentColor.copy(alpha = .95f),
+                modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 4.dp)
             )
             Text(
                 text = removeExtraChars(article.content),
@@ -378,8 +390,8 @@ fun MoreBottomSheet(
                 softWrap = true,
                 fontFamily = FontFamily.SansSerif,
                 lineHeight = 19.sp,
-                color = Color(0xFF000000),
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, start = 4.dp, end = 4.dp)
+                color = contentColor.copy(alpha = .6f),
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp, start = 12.dp, end = 4.dp)
             )
             Box(
                 modifier = Modifier
@@ -423,7 +435,8 @@ fun TopBarWithDropdowns(
             "NEWS4U",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = lobster_two_font
+            fontFamily = lobster_two_font,
+            color = if (isSystemInDarkTheme()) Color.White else Color.Black
         )
         LazyRow(modifier = Modifier.fillMaxWidth()) {
             item {
@@ -452,18 +465,23 @@ fun DropdownMenuExample(
 
     Column (
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.Start,
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
     ){
-        Text(label, fontWeight = FontWeight.Thin, fontSize = 10.sp, lineHeight = 14.sp)
+        val contentColor = if (isSystemInDarkTheme()) Color.White.copy(alpha = .8f) else Color
+                .Black.copy(alpha = .8f)
+        Text(label, fontWeight = FontWeight.Thin, fontSize = 10.sp, lineHeight = 14.sp, color = contentColor)
         OutlinedButton(
             onClick = { expanded = true },
             shape = RectangleShape,
-            border = BorderStroke(1.dp, Color(0xFF2424D5))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
         ) {
             Text(
                 text = selectedItem,
-                fontFamily = dongle_font
+                fontFamily = dongle_font,
+                color = if (isSystemInDarkTheme()) Color.White.copy(alpha = .9f) else Color.Black
+                        .copy
+                    (alpha = .9f)
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -512,11 +530,12 @@ fun formatDateTime(dateTimeString:String):Array<String>{
     return arrayOf(formatedDate, formattedTime)
 }
 
+@SuppressLint("UnrememberedMutableState")
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun Previeww(){
-//    TopBarWithDropdowns()
+    TopBarWithDropdowns(mutableStateOf("any"), mutableStateOf("any"), mutableStateOf("any"), mutableStateOf("any"))
 //    MoreBottomSheet(article = Article(
 //        "Hello I am Kartik Maheswari Hello I am Kartik Maheswari ",
 //        "Hello I am Kartik Maheswari",
